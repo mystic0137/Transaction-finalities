@@ -6,6 +6,7 @@ import { createChart, ColorType } from "lightweight-charts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
+import { Moon, Sun } from 'lucide-react';
 
 // Dynamically import Joyride with SSR disabled - This fixes the hydration error
 const Joyride = dynamic(() => import('react-joyride'), { ssr: false });
@@ -53,11 +54,37 @@ function SoftHardFinalityComponent() {
   const chartRef = useRef<HTMLDivElement>(null);
   const processingRef = useRef<Set<string>>(new Set());
 
+  // Theme state - dark mode as default
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
   // Tour state
   const [runTour, setRunTour] = useState(false);
   const [tourKey, setTourKey] = useState(0);
 
-  // Tour steps configuration
+  // Load theme preference from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('finality-theme');
+    if (savedTheme) {
+      setIsDarkMode(savedTheme === 'dark');
+    }
+  }, []);
+
+  // Save theme preference and apply to document
+  useEffect(() => {
+    localStorage.setItem('finality-theme', isDarkMode ? 'dark' : 'light');
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  // Theme toggle function
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  // Tour steps configuration (updated to include theme toggle)
   const tourSteps = [
     {
       target: '.tour-welcome',
@@ -69,6 +96,20 @@ function SoftHardFinalityComponent() {
       ),
       placement: 'center' as const,
       disableBeacon: true,
+    },
+    {
+      target: '.tour-theme-toggle',
+      content: (
+        <div>
+          <h3 className="text-lg font-bold mb-2">Theme Toggle 🌙☀️</h3>
+          <p>Switch between dark and light mode for comfortable viewing during finality simulation.</p>
+          <div className="mt-2 space-y-1 text-sm">
+            <p>🌙 <strong>Dark Mode:</strong> Easy on the eyes for extended trading</p>
+            <p>☀️ <strong>Light Mode:</strong> Classic bright interface</p>
+            <p>💾 <strong>Persistent:</strong> Your preference is saved</p>
+          </div>
+        </div>
+      ),
     },
     {
       target: '.tour-balance',
@@ -182,14 +223,17 @@ function SoftHardFinalityComponent() {
 
     const chart = createChart(chartRef.current, {
       layout: {
-        background: { color: "#ffffff", type: ColorType.Solid },
-        textColor: "#1f2937",
+        background: { 
+          color: isDarkMode ? "#1f2937" : "#ffffff", 
+          type: ColorType.Solid 
+        },
+        textColor: isDarkMode ? "#e5e7eb" : "#1f2937",
       },
       width: 800,
       height: 400,
       grid: {
-        vertLines: { color: "#f3f4f6" },
-        horzLines: { color: "#f3f4f6" },
+        vertLines: { color: isDarkMode ? "#374151" : "#f3f4f6" },
+        horzLines: { color: isDarkMode ? "#374151" : "#f3f4f6" },
       },
     });
 
@@ -229,7 +273,7 @@ function SoftHardFinalityComponent() {
     chart.timeScale().fitContent();
 
     return () => chart.remove();
-  }, []);
+  }, [isDarkMode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -446,7 +490,9 @@ function SoftHardFinalityComponent() {
   const softStats = getSoftFinalityStats();
 
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className={`min-h-screen p-6 transition-colors duration-300 ${
+      isDarkMode ? 'bg-gray-900' : 'bg-white'
+    }`}>
       {/* Tour Component */}
       <Joyride
         key={tourKey}
@@ -459,10 +505,10 @@ function SoftHardFinalityComponent() {
         styles={{
           options: {
             arrowColor: "#ec4899",
-            backgroundColor: "#ec4899",
+            backgroundColor: isDarkMode ? "#1f2937" : "#ec4899",
             overlayColor: "rgba(236, 72, 153, 0.3)",
             primaryColor: "#ec4899",
-            textColor: "#fff",
+            textColor: isDarkMode ? "#e5e7eb" : "#fff",
             width: 320,
             zIndex: 1000,
           },
@@ -481,21 +527,52 @@ function SoftHardFinalityComponent() {
       />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200 rounded-lg p-4 mb-6 tour-welcome">
+      <div className={`border rounded-lg p-4 mb-6 tour-welcome transition-colors duration-300 ${
+        isDarkMode 
+          ? 'bg-gradient-to-r from-pink-900/20 to-rose-900/20 border-pink-700' 
+          : 'bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200'
+      }`}>
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">CryptoExchange Pro</h1>
-            <p className="text-gray-600">Professional Trading Platform - Interactive Finality Demo</p>
+            <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              CryptoExchange Pro
+            </h1>
+            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-600'}>
+              Professional Trading Platform - Interactive Finality Demo
+            </p>
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-pink-600">
+              <p className="text-sm text-pink-400">
                 Current Selection: <strong>{selectedFinalityType === 'hard' ? 'Hard Finality (100% Permanent)' : 'Soft Finality (50% Permanent, 50% Revertible)'}</strong>
               </p>
-              <p className="text-xs text-gray-500">
+              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Choose your preferred finality type before placing orders
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {/* Theme Toggle Button */}
+            <Button
+              onClick={toggleTheme}
+              variant="ghost"
+              size="sm"
+              className={`tour-theme-toggle p-2 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <motion.div
+                initial={false}
+                animate={{ rotate: isDarkMode ? 0 : 180 }}
+                transition={{ duration: 0.3 }}
+              >
+                {isDarkMode ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </motion.div>
+            </Button>
             {/* Help Button */}
             <Button
               onClick={startTour}
@@ -503,10 +580,18 @@ function SoftHardFinalityComponent() {
             >
               🆘 Start Tour
             </Button>
-            <div className="text-right bg-white rounded-lg p-3 border border-pink-200 tour-balance">
-              <p className="text-sm text-gray-600">Total Balance</p>
-              <p className="text-xl font-bold text-gray-900">${balance.toLocaleString()}</p>
-              <div className="text-xs text-gray-500 mt-1">
+            <div className={`text-right rounded-lg p-3 border tour-balance transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-gray-800 border-pink-700' 
+                : 'bg-white border-pink-200'
+            }`}>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Total Balance
+              </p>
+              <p className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                ${balance.toLocaleString()}
+              </p>
+              <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Soft Revert Rate: {Math.round(softFinalityRevertChance * 100)}%
               </div>
             </div>
@@ -517,9 +602,17 @@ function SoftHardFinalityComponent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart Section */}
         <div className="lg:col-span-2">
-          <Card className="border-pink-200">
-            <CardHeader className="bg-pink-50 border-b border-pink-200">
-              <CardTitle className="text-xl text-gray-900">SOL/USDT</CardTitle>
+          <Card className={`transition-colors duration-300 ${
+            isDarkMode ? 'border-pink-700 bg-gray-800' : 'border-pink-200'
+          }`}>
+            <CardHeader className={`border-b transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-pink-900/20 border-pink-700' 
+                : 'bg-pink-50 border-pink-200'
+            }`}>
+              <CardTitle className={`text-xl ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                SOL/USDT
+              </CardTitle>
               <div className="flex items-center gap-4">
                 <span className="text-2xl font-bold text-green-600">${currentPrice}</span>
                 <span className="text-green-600 text-sm">+2.45%</span>
@@ -531,23 +624,43 @@ function SoftHardFinalityComponent() {
           </Card>
 
           {/* Order Management Zone */}
-          <Card className="border-pink-200 mt-6">
-            <CardHeader className="bg-pink-50 border-b border-pink-200">
-              <CardTitle className="text-lg text-gray-900">Order Management</CardTitle>
-              <p className="text-sm text-gray-600">Drag pending orders to cancel them</p>
+          <Card className={`mt-6 transition-colors duration-300 ${
+            isDarkMode ? 'border-pink-700 bg-gray-800' : 'border-pink-200'
+          }`}>
+            <CardHeader className={`border-b transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-pink-900/20 border-pink-700' 
+                : 'bg-pink-50 border-pink-200'
+            }`}>
+              <CardTitle className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Order Management
+              </CardTitle>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Drag pending orders to cancel them
+              </p>
             </CardHeader>
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Pending Orders */}
                 <div className="space-y-2 tour-pending-orders">
-                  <h3 className="font-semibold text-gray-700">Pending Orders ({pendingOrders.length})</h3>
-                  <div className="min-h-32 bg-yellow-50 border-2 border-dashed border-yellow-200 rounded-lg p-2">
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Pending Orders ({pendingOrders.length})
+                  </h3>
+                  <div className={`min-h-32 border-2 border-dashed rounded-lg p-2 transition-colors duration-300 ${
+                    isDarkMode 
+                      ? 'bg-yellow-900/20 border-yellow-700' 
+                      : 'bg-yellow-50 border-yellow-200'
+                  }`}>
                     {pendingOrders.map((order) => (
                       <div
                         key={order.id}
                         draggable
                         onDragStart={() => handleDragStart(order.id)}
-                        className="bg-white border border-yellow-300 rounded p-2 mb-2 cursor-move hover:shadow-md transition-shadow"
+                        className={`border rounded p-2 mb-2 cursor-move hover:shadow-md transition-all duration-300 ${
+                          isDarkMode 
+                            ? 'bg-gray-700 border-yellow-600' 
+                            : 'bg-white border-yellow-300'
+                        }`}
                       >
                         <div className="flex justify-between text-xs">
                           <span className={`font-bold ${order.type === 'buy' ? 'text-green-600' : 'text-red-600'}`}>
@@ -555,7 +668,7 @@ function SoftHardFinalityComponent() {
                           </span>
                           <span className="text-amber-600">⏳ PENDING</span>
                         </div>
-                        <div className="text-xs text-gray-600">
+                        <div className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                           {order.quantity} SOL @ ${order.price?.toFixed(2)}
                         </div>
                         <div className="text-xs">
@@ -566,20 +679,28 @@ function SoftHardFinalityComponent() {
                       </div>
                     ))}
                     {pendingOrders.length === 0 && (
-                      <p className="text-gray-400 text-center py-4">No pending orders</p>
+                      <p className={`text-center py-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                        No pending orders
+                      </p>
                     )}
                   </div>
                 </div>
 
                 {/* Cancel Zone */}
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-700">Cancel Orders</h3>
+                  <h3 className={`font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Cancel Orders
+                  </h3>
                   <div
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, 'cancel')}
-                    className="min-h-32 bg-red-50 border-2 border-dashed border-red-200 rounded-lg p-2 flex items-center justify-center"
+                    className={`min-h-32 border-2 border-dashed rounded-lg p-2 flex items-center justify-center transition-colors duration-300 ${
+                      isDarkMode 
+                        ? 'bg-red-900/20 border-red-700' 
+                        : 'bg-red-50 border-red-200'
+                    }`}
                   >
-                    <div className="text-center text-gray-500">
+                    <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       <div className="text-2xl mb-2">🗑️</div>
                       <p className="text-sm">Drop orders here to cancel</p>
                     </div>
@@ -590,19 +711,35 @@ function SoftHardFinalityComponent() {
           </Card>
 
           {/* Finality Statistics */}
-          <Card className="border-pink-200 mt-6 tour-statistics">
-            <CardHeader className="bg-pink-50 border-b border-pink-200">
-              <CardTitle className="text-lg text-gray-900">Finality Statistics</CardTitle>
+          <Card className={`mt-6 tour-statistics transition-colors duration-300 ${
+            isDarkMode ? 'border-pink-700 bg-gray-800' : 'border-pink-200'
+          }`}>
+            <CardHeader className={`border-b transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-pink-900/20 border-pink-700' 
+                : 'bg-pink-50 border-pink-200'
+            }`}>
+              <CardTitle className={`text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Finality Statistics
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className={`border rounded-lg p-3 transition-colors duration-300 ${
+                  isDarkMode 
+                    ? 'bg-blue-900/20 border-blue-700' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
                   <div className="text-2xl font-bold text-blue-600">
                     {orders.filter(o => o.status === 'permanent').length}
                   </div>
                   <div className="text-sm text-blue-600">Total Permanent</div>
                 </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <div className={`border rounded-lg p-3 transition-colors duration-300 ${
+                  isDarkMode 
+                    ? 'bg-orange-900/20 border-orange-700' 
+                    : 'bg-orange-50 border-orange-200'
+                }`}>
                   <div className="text-2xl font-bold text-orange-600">
                     {orders.filter(o => o.status === 'reverted').length}
                   </div>
@@ -610,20 +747,34 @@ function SoftHardFinalityComponent() {
                 </div>
               </div>
               
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <div className="text-sm font-semibold text-gray-700 mb-2">Soft Finality Results</div>
+              <div className={`border rounded-lg p-3 transition-colors duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-700 border-gray-600' 
+                  : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className={`text-sm font-semibold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Soft Finality Results
+                </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="text-center">
-                    <div className="font-bold text-gray-600">{softStats.total}</div>
-                    <div className="text-gray-500">Total Soft</div>
+                    <div className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {softStats.total}
+                    </div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      Total Soft
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="font-bold text-blue-600">{softStats.permanentRate}%</div>
-                    <div className="text-gray-500">Permanent Rate</div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      Permanent Rate
+                    </div>
                   </div>
                   <div className="text-center">
                     <div className="font-bold text-orange-600">{softStats.revertRate}%</div>
-                    <div className="text-gray-500">Revert Rate</div>
+                    <div className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                      Revert Rate
+                    </div>
                   </div>
                 </div>
               </div>
@@ -633,14 +784,28 @@ function SoftHardFinalityComponent() {
 
         {/* Trading Panel */}
         <div className="space-y-4">
-          <Card className="border-pink-200">
-            <CardHeader className="bg-pink-50 border-b border-pink-200">
-              <CardTitle>Trading Panel</CardTitle>
+          <Card className={`transition-colors duration-300 ${
+            isDarkMode ? 'border-pink-700 bg-gray-800' : 'border-pink-200'
+          }`}>
+            <CardHeader className={`border-b transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-pink-900/20 border-pink-700' 
+                : 'bg-pink-50 border-pink-200'
+            }`}>
+              <CardTitle className={isDarkMode ? 'text-white' : 'text-black'}>
+                Trading Panel
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               {/* Finality Type Selection */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg tour-finality-selection">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Choose Finality Type</h3>
+              <div className={`mb-6 p-4 border rounded-lg tour-finality-selection transition-colors duration-300 ${
+                isDarkMode 
+                  ? 'bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-700' 
+                  : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'
+              }`}>
+                <h3 className={`text-sm font-semibold mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Choose Finality Type
+                </h3>
                 <div className="space-y-3">
                   <label className="flex items-center space-x-3 cursor-pointer">
                     <input
@@ -653,7 +818,9 @@ function SoftHardFinalityComponent() {
                     />
                     <div className="flex-1">
                       <div className="text-sm font-medium text-orange-700">🔄 Soft Finality</div>
-                      <div className="text-xs text-gray-600">50% chance of reversion</div>
+                      <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        50% chance of reversion
+                      </div>
                     </div>
                   </label>
                   
@@ -668,7 +835,9 @@ function SoftHardFinalityComponent() {
                     />
                     <div className="flex-1">
                       <div className="text-sm font-medium text-blue-700">🔒 Hard Finality</div>
-                      <div className="text-xs text-gray-600">100% permanent</div>
+                      <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        100% permanent
+                      </div>
                     </div>
                   </label>
                 </div>
@@ -676,23 +845,29 @@ function SoftHardFinalityComponent() {
 
               {/* Trading Tabs */}
               <div className="w-full mb-4 tour-trading-tabs">
-                <div className="flex border-b border-gray-200">
+                <div className={`flex border-b ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                }`}>
                   <button
                     onClick={() => setActiveTab('market')}
-                    className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 ${
+                    className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors duration-300 ${
                       activeTab === 'market'
-                        ? 'border-pink-500 text-pink-600 bg-pink-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? 'border-pink-500 text-pink-400 bg-pink-900/20'
+                        : isDarkMode 
+                          ? 'border-transparent text-gray-400 hover:text-gray-300'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     Market
                   </button>
                   <button
                     onClick={() => setActiveTab('limit')}
-                    className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 ${
+                    className={`flex-1 py-2 px-4 text-sm font-medium border-b-2 transition-colors duration-300 ${
                       activeTab === 'limit'
-                        ? 'border-pink-500 text-pink-600 bg-pink-50'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? 'border-pink-500 text-pink-400 bg-pink-900/20'
+                        : isDarkMode 
+                          ? 'border-transparent text-gray-400 hover:text-gray-300'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     Limit
@@ -703,7 +878,9 @@ function SoftHardFinalityComponent() {
               {activeTab === 'market' && (
                 <div className="space-y-4">
                   <div className="tour-quantity-input">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Quantity (SOL)
                     </label>
                     <input
@@ -711,7 +888,11 @@ function SoftHardFinalityComponent() {
                       placeholder="0.00"
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-300 ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300'
+                      }`}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2 tour-trade-buttons">
@@ -734,7 +915,9 @@ function SoftHardFinalityComponent() {
               {activeTab === 'limit' && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Price (USDT)
                     </label>
                     <input
@@ -742,11 +925,17 @@ function SoftHardFinalityComponent() {
                       placeholder="85.00"
                       value={limitPrice}
                       onChange={(e) => setLimitPrice(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-300 ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300'
+                      }`}
                     />
                   </div>
                   <div className="tour-quantity-input">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className={`block text-sm font-medium mb-1 ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>
                       Quantity (SOL)
                     </label>
                     <input
@@ -754,7 +943,11 @@ function SoftHardFinalityComponent() {
                       placeholder="0.00"
                       value={quantity}
                       onChange={(e) => setQuantity(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-300 ${
+                        isDarkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300'
+                      }`}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2 tour-trade-buttons">
@@ -777,21 +970,33 @@ function SoftHardFinalityComponent() {
           </Card>
 
           {/* Order History */}
-          <Card className="border-pink-200 tour-order-history">
-            <CardHeader className="bg-pink-50 border-b border-pink-200">
-              <CardTitle className="text-sm">Order History</CardTitle>
+          <Card className={`tour-order-history transition-colors duration-300 ${
+            isDarkMode ? 'border-pink-700 bg-gray-800' : 'border-pink-200'
+          }`}>
+            <CardHeader className={`border-b transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-pink-900/20 border-pink-700' 
+                : 'bg-pink-50 border-pink-200'
+            }`}>
+              <CardTitle className={`text-sm ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                Order History
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {orders.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No order history</p>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    No order history
+                  </p>
                 ) : (
                   orders.map((order) => {
                     const statusDisplay = getOrderStatusDisplay(order);
                     const borderColor = getOrderBorderColor(order);
                     
                     return (
-                      <div key={order.id} className={`text-xs bg-gray-50 p-2 rounded border-l-4 ${borderColor}`}>
+                      <div key={order.id} className={`text-xs p-2 rounded border-l-4 ${borderColor} transition-colors duration-300 ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+                      }`}>
                         <div className="flex justify-between">
                           <span className={order.type === 'buy' ? 'text-green-600' : 'text-red-600'}>
                             {order.type.toUpperCase()} {order.orderType}
@@ -800,7 +1005,7 @@ function SoftHardFinalityComponent() {
                             {statusDisplay.text}
                           </span>
                         </div>
-                        <div className="text-gray-600 mb-1">
+                        <div className={`mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                           {order.quantity} SOL @ ${order.price?.toFixed(2)}
                         </div>
                         {order.finalityType && (
@@ -809,7 +1014,7 @@ function SoftHardFinalityComponent() {
                               {order.finalityType === 'soft' ? '🔄 Soft Finality' : '🔒 Hard Finality'}
                             </span>
                             {order.originalBalance && order.newBalance && (
-                              <span className="text-gray-500 ml-2">
+                              <span className={`ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                 ${order.originalBalance.toLocaleString()} → ${order.newBalance.toLocaleString()}
                                 {order.status === 'reverted' && ' → Reverted'}
                               </span>
@@ -835,13 +1040,19 @@ function SoftHardFinalityComponent() {
             exit={{ opacity: 0, scale: 0.8, y: -20 }}
             className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50"
           >
-            <div className="max-w-md border border-orange-400 bg-orange-50 rounded-lg shadow-lg">
+            <div className={`max-w-md border border-orange-400 rounded-lg shadow-lg transition-colors duration-300 ${
+              isDarkMode ? 'bg-orange-900/20' : 'bg-orange-50'
+            }`}>
               <div className="p-4">
                 <div className="flex items-start space-x-3">
                   <div className="text-orange-600 text-xl">⚡</div>
                   <div className="flex-1">
-                    <p className="font-bold text-orange-800">Finality Update</p>
-                    <p className="text-sm text-orange-700 mt-1">{latestMessage}</p>
+                    <p className={`font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-800'}`}>
+                      Finality Update
+                    </p>
+                    <p className={`text-sm mt-1 ${isDarkMode ? 'text-orange-300' : 'text-orange-700'}`}>
+                      {latestMessage}
+                    </p>
                   </div>
                 </div>
               </div>
